@@ -1,0 +1,10 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-06-18 21:01:24,520 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-18 21:01:24,520 INFO [33mPress CTRL+C to quit[0m
+2026-06-18 21:01:26,335 INFO diff mode=txt groups=1 total=5 diff=4
+2026-06-18 21:01:26,336 INFO 127.0.0.1 - - [18/Jun/2026 21:01:26] "POST /diff HTTP/1.1" 200 -
+2026-06-18 21:01:26,365 INFO diff mode=jsonl groups=2 total=4 diff=2
+2026-06-18 21:01:26,366 INFO 127.0.0.1 - - [18/Jun/2026 21:01:26] "POST /diff HTTP/1.1" 200 -
+2026-06-18 21:01:26,385 INFO 127.0.0.1 - - [18/Jun/2026 21:01:26] "[31m[1mPOST /diff HTTP/1.1[0m" 400 -

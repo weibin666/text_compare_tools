@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """diff_core 的基础单元测试：python3 -m pytest test_diff_core.py（或直接运行）。"""
 
-from diff_core import diff_pair, build_diff_workbook
+from diff_core import (
+    diff_pair, build_diff_workbook, build_multi_diff_workbook, build_html_report,
+)
 
 
 def _ops(segments):
@@ -56,6 +58,39 @@ def test_only_diff_filters_preview():
     wb, result = build_diff_workbook(pairs, only_diff=True)
     assert len(result["preview"]) == 1
     assert result["preview"][0]["idx"] == 2
+
+
+def test_multi_workbook_one_sheet_per_group():
+    groups = [
+        {"title": "src vs mt", "header_a": "src", "header_b": "mt",
+         "pairs": [("cat", "cut"), ("a", "a")]},
+        {"title": "a/b", "header_a": "a", "header_b": "b",
+         "pairs": [("foo", "bar")]},
+    ]
+    wb, sections = build_multi_diff_workbook(groups)
+    assert len(wb.worksheets) == 2
+    assert len(sections) == 2
+    assert sections[0]["diff_count"] == 1
+    assert sections[1]["total"] == 1
+
+
+def test_sheet_title_sanitized_and_unique():
+    groups = [
+        {"title": "a:b/c", "header_a": "x", "header_b": "y", "pairs": [("a", "a")]},
+        {"title": "a:b/c", "header_a": "x", "header_b": "y", "pairs": [("a", "a")]},
+    ]
+    wb, _ = build_multi_diff_workbook(groups)
+    titles = [ws.title for ws in wb.worksheets]
+    assert len(set(titles)) == 2
+    assert all(not set(t) & set('[]:*?/\\') for t in titles)
+
+
+def test_html_report_contains_highlight():
+    wb, result = build_diff_workbook([("cat", "cut")])
+    report = build_html_report(result)
+    assert "<!DOCTYPE html>" in report
+    assert "color:#d11" in report  # 删除标红
+    assert "color:#080" in report  # 新增标绿
 
 
 if __name__ == "__main__":

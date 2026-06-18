@@ -1,0 +1,12 @@
+.git
+.gitignore
+.claude
+results/
+*.xlsx
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+README.md
+nginx/certs/*

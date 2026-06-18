@@ -7,6 +7,9 @@ downloaded.xlsx
 .claude/
 .DS_Store
 
+# TLS 证书（不要提交）
+nginx/certs/
+
 # Python
 __pycache__/
 *.pyc
