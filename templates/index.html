@@ -8,51 +8,63 @@
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-      max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222;
-      background: #f7f8fa;
+      max-width: 920px; margin: 32px auto; padding: 0 16px; color: #222; background: #f7f8fa;
     }
-    h1 { font-size: 22px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
     .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-    .tab {
-      flex: 1; padding: 10px; text-align: center; cursor: pointer;
-      border: 1px solid #d0d4da; border-radius: 8px; background: #fafbfc; font-size: 14px;
-    }
+    .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer;
+      border: 1px solid #d0d4da; border-radius: 8px; background: #fafbfc; font-size: 14px; }
     .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
     .pane { display: none; }
     .pane.active { display: block; }
     label { display: block; margin: 14px 0 6px; font-size: 14px; font-weight: 600; }
-    input[type=file], input[type=text] {
-      width: 100%; padding: 9px; border: 1px solid #d0d4da; border-radius: 6px; font-size: 14px;
-    }
-    .row { display: flex; gap: 12px; }
-    .row > div { flex: 1; }
-    button {
-      margin-top: 20px; width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
-      color: #fff; background: #2563eb; border: none; border-radius: 8px; cursor: pointer;
-    }
+    input[type=file], input[type=text], select {
+      width: 100%; padding: 9px; border: 1px solid #d0d4da; border-radius: 6px; font-size: 14px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 140px; }
+    button { margin-top: 20px; width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
+      color: #fff; background: #2563eb; border: none; border-radius: 8px; cursor: pointer; }
     button:disabled { background: #93b4f5; cursor: not-allowed; }
     .hint { font-size: 12px; color: #888; font-weight: 400; margin-top: 4px; }
+    fieldset { margin-top: 18px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; }
+    legend { font-size: 13px; font-weight: 600; color: #555; padding: 0 6px; }
+    .opts { display: flex; gap: 18px 24px; flex-wrap: wrap; align-items: center; }
+    .opts label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0; font-weight: 400; }
+    .opts input[type=checkbox] { width: auto; }
+    .opts select { width: auto; }
     #result { margin-top: 20px; padding: 16px; border-radius: 8px; display: none; }
-    #result.ok { background: #ecfdf5; border: 1px solid #a7f3d0; }
     #result.err { background: #fef2f2; border: 1px solid #fecaca; }
-    #result a { display: inline-block; margin-top: 8px; color: #2563eb; font-weight: 600; }
+    #result.ok { background: #fff; border: 1px solid #e5e7eb; }
+    .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; }
+    .stat b { font-size: 20px; color: #2563eb; }
+    .legend { font-size: 12px; color: #666; margin-bottom: 10px; }
+    .legend .d { color: #d11; font-weight: 600; }
+    .legend .i { color: #080; font-weight: 600; }
+    .dl { display: inline-block; margin: 6px 0 14px; padding: 8px 14px; background: #16a34a;
+      color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; }
+    table.preview { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.preview th, table.preview td { border: 1px solid #e5e7eb; padding: 6px 8px;
+      vertical-align: top; text-align: left; word-break: break-word; }
+    table.preview th { background: #f3f4f6; position: sticky; top: 0; }
+    .wrap { max-height: 480px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+    td.num { text-align: center; color: #999; width: 44px; }
+    td.sim { text-align: center; width: 60px; }
   </style>
 </head>
 <body>
   <h1>📝 文本对比工具</h1>
-  <p class="hint">对比两段文本，把不同的字符在 Excel 中用红色高亮标出。</p>
+  <p class="hint">逐行对比两段文本，不同字符高亮标出（<span style="color:#d11">红=删除/缺失</span>，<span style="color:#080">绿=新增</span>），可在线预览并导出 Excel。</p>
   <div class="card">
     <div class="tabs">
       <div class="tab active" data-mode="txt">两个 txt 文件</div>
-      <div class="tab" data-mode="excel">Excel 文件</div>
+      <div class="tab" data-mode="excel">Excel / CSV</div>
       <div class="tab" data-mode="jsonl">jsonl 文件</div>
     </div>
 
     <form id="form">
       <input type="hidden" name="mode" id="mode" value="txt">
 
-      <!-- txt -->
       <div class="pane active" data-pane="txt">
         <label>文本文件 1</label>
         <input type="file" name="txt1" accept=".txt">
@@ -61,10 +73,9 @@
         <p class="hint">两个文件行数一一对应，逐行对比。</p>
       </div>
 
-      <!-- excel -->
       <div class="pane" data-pane="excel">
-        <label>Excel 文件</label>
-        <input type="file" name="excel" accept=".xlsx,.xlsm">
+        <label>Excel / CSV 文件</label>
+        <input type="file" name="excel" accept=".xlsx,.xlsm,.csv">
         <p class="hint">第一行为表头，下面填要对比的两个列名。</p>
         <div class="row">
           <div><label>列名 A</label><input type="text" name="excel_col_a" placeholder="如 src"></div>
@@ -72,7 +83,6 @@
         </div>
       </div>
 
-      <!-- jsonl -->
       <div class="pane" data-pane="jsonl">
         <label>jsonl 文件</label>
         <input type="file" name="jsonl" accept=".json,.jsonl,.txt">
@@ -82,6 +92,22 @@
           <div><label>字段 B</label><input type="text" name="json_key_b" value="mt"></div>
         </div>
       </div>
+
+      <fieldset>
+        <legend>对比选项</legend>
+        <div class="opts">
+          <label>粒度
+            <select name="granularity">
+              <option value="char">字符级（适合中文）</option>
+              <option value="word">词级（适合英文）</option>
+            </select>
+          </label>
+          <label><input type="checkbox" name="ignore_case" value="1"> 忽略大小写</label>
+          <label><input type="checkbox" name="ignore_ws" value="1"> 忽略空白</label>
+          <label><input type="checkbox" name="ignore_punct" value="1"> 忽略标点</label>
+          <label><input type="checkbox" name="only_diff" value="1"> 只导出有差异的行</label>
+        </div>
+      </fieldset>
 
       <button type="submit" id="submit">开始对比</button>
     </form>
@@ -104,6 +130,32 @@
     const result = document.getElementById('result');
     const submit = document.getElementById('submit');
 
+    function renderPreview(d) {
+      let rows = d.preview.map(r => `
+        <tr>
+          <td class="num">${r.idx}</td>
+          <td>${r.a_html || '<span style="color:#bbb">（空）</span>'}</td>
+          <td>${r.b_html || '<span style="color:#bbb">（空）</span>'}</td>
+          <td class="sim">${r.sim}%</td>
+        </tr>`).join('');
+      const more = d.total > d.preview.length
+        ? `<p class="hint">仅预览前 ${d.preview.length} 行，完整结果请下载 Excel。</p>` : '';
+      return `
+        <div class="stats">
+          <div class="stat">总行数<br><b>${d.total}</b></div>
+          <div class="stat">差异行<br><b>${d.diff_count}</b></div>
+          <div class="stat">平均相似度<br><b>${d.avg_similarity}%</b></div>
+        </div>
+        <div class="legend"><span class="d">红 = 删除/缺失</span> ＆ <span class="i">绿 = 新增</span></div>
+        <a class="dl" href="${d.download_url}">⬇️ 下载高亮 Excel</a>
+        ${more}
+        <div class="wrap"><table class="preview">
+          <thead><tr><th>行</th><th>${escapeHtml(d.header_a)}</th><th>${escapeHtml(d.header_b)}</th><th>相似度</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4">没有可显示的行。</td></tr>'}</tbody>
+        </table></div>`;
+    }
+    function escapeHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       submit.disabled = true; submit.textContent = '处理中…';
@@ -111,17 +163,10 @@
       try {
         const resp = await fetch('/diff', { method: 'POST', body: new FormData(form) });
         const data = await resp.json();
-        if (data.ok) {
-          result.className = 'ok';
-          result.innerHTML = `✅ 对比完成：共 <b>${data.total}</b> 行，其中 <b>${data.diff_count}</b> 行有差异。<br>
-            <a href="${data.download_url}">⬇️ 下载高亮 Excel 结果</a>`;
-        } else {
-          result.className = 'err';
-          result.innerHTML = '❌ ' + data.error;
-        }
+        if (data.ok) { result.className = 'ok'; result.innerHTML = renderPreview(data); }
+        else { result.className = 'err'; result.innerHTML = '❌ ' + escapeHtml(data.error); }
       } catch (err) {
-        result.className = 'err';
-        result.textContent = '❌ 请求失败：' + err;
+        result.className = 'err'; result.textContent = '❌ 请求失败：' + err;
       } finally {
         result.style.display = 'block';
         submit.disabled = false; submit.textContent = '开始对比';
