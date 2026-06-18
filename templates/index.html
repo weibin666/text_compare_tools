@@ -5,148 +5,311 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>文本对比工具</title>
   <style>
+    :root {
+      --bg: #eef1f8;
+      --card: #ffffff;
+      --ink: #1e2433;
+      --muted: #6b7280;
+      --line: #e7e9f1;
+      --primary: #5b5bf0;
+      --primary-d: #4747d1;
+      --primary-soft: #eef0fe;
+      --red: #e0394b;
+      --green: #0f9d58;
+      --radius: 16px;
+      --shadow: 0 10px 30px -12px rgba(40,44,90,.25);
+    }
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-      max-width: 960px; margin: 32px auto; padding: 0 16px; color: #222; background: #f7f8fa; }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .tab { flex: 1; min-width: 120px; padding: 10px; text-align: center; cursor: pointer;
-      border: 1px solid #d0d4da; border-radius: 8px; background: #fafbfc; font-size: 14px; }
-    .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-    .pane { display: none; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      margin: 0; color: var(--ink); line-height: 1.55;
+      background:
+        radial-gradient(1200px 500px at 12% -8%, #dfe2ff 0%, rgba(223,226,255,0) 60%),
+        radial-gradient(1000px 480px at 110% 0%, #d9f3ec 0%, rgba(217,243,236,0) 55%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .shell { max-width: 980px; margin: 0 auto; padding: 40px 18px 64px; }
+
+    /* hero */
+    .hero { text-align: center; margin-bottom: 26px; }
+    .hero .logo {
+      width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px;
+      display: grid; place-items: center; font-size: 28px; color: #fff;
+      background: linear-gradient(135deg, #6a6af5, #8e7bff);
+      box-shadow: 0 12px 24px -10px rgba(91,91,240,.7);
+    }
+    .hero h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.3px; }
+    .hero p { margin: 0; color: var(--muted); font-size: 14px; }
+    .hero .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+      border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .chip.r { background: #fde8eb; color: var(--red); }
+    .chip.g { background: #e3f5ec; color: var(--green); }
+
+    /* card */
+    .card { background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; }
+
+    /* tabs */
+    .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      background: #f3f4fb; padding: 6px; border-radius: 12px; margin-bottom: 20px; }
+    .tab { display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 10px 6px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 600;
+      color: var(--muted); transition: all .18s ease; user-select: none; text-align: center; }
+    .tab .ic { font-size: 18px; }
+    .tab:hover { color: var(--ink); background: #eaecf6; }
+    .tab.active { color: var(--primary-d); background: #fff; box-shadow: 0 4px 12px -6px rgba(40,44,90,.3); }
+
+    .pane { display: none; animation: fade .25s ease; }
     .pane.active { display: block; }
-    label { display: block; margin: 14px 0 6px; font-size: 14px; font-weight: 600; }
-    input[type=file], input[type=text], select {
-      width: 100%; padding: 9px; border: 1px solid #d0d4da; border-radius: 6px; font-size: 14px; }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; }
-    .row > div { flex: 1; min-width: 140px; }
-    .pair { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    label.fld { display: block; margin: 16px 0 7px; font-size: 13px; font-weight: 600; color: #374151; }
+    input[type=text], select {
+      width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px;
+      font-size: 14px; background: #fbfbfe; transition: border .15s, box-shadow .15s; color: var(--ink); }
+    input[type=text]:focus, select:focus { outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft); background: #fff; }
+    .row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 150px; }
+    .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+
+    /* file dropzone */
+    .drop { position: relative; display: flex; align-items: center; gap: 12px;
+      border: 1.5px dashed #c8cce0; border-radius: 12px; padding: 14px 16px; cursor: pointer;
+      background: #fafbff; transition: all .18s ease; }
+    .drop:hover { border-color: var(--primary); background: var(--primary-soft); }
+    .drop.dragover { border-color: var(--primary); background: var(--primary-soft); transform: scale(1.005); }
+    .drop.filled { border-style: solid; border-color: #b9d8c6; background: #f1faf5; }
+    .drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .drop .dic { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 10px; display: grid;
+      place-items: center; font-size: 18px; background: #fff; border: 1px solid var(--line); }
+    .drop.filled .dic { background: #e3f5ec; border-color: #b9d8c6; }
+    .drop .dtxt { font-size: 13.5px; overflow: hidden; }
+    .drop .dtxt b { display: block; color: var(--ink); font-weight: 600; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; }
+    .drop .dtxt span { color: var(--muted); font-size: 12px; }
+
+    /* dynamic pairs */
+    .pair { display: flex; gap: 10px; align-items: center; margin-bottom: 9px; }
+    .pair .arrow { color: var(--muted); font-size: 13px; flex: 0 0 auto; }
     .pair input { flex: 1; }
-    .pair .rm { flex: 0 0 auto; width: 34px; padding: 8px 0; background: #fee2e2; color: #b91c1c;
-      border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; font-weight: 700; }
-    .addpair { margin-top: 4px; padding: 6px 12px; font-size: 13px; background: #eef2ff;
-      color: #3730a3; border: 1px dashed #a5b4fc; border-radius: 6px; cursor: pointer; width: auto; }
-    button.go { margin-top: 20px; width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
-      color: #fff; background: #2563eb; border: none; border-radius: 8px; cursor: pointer; }
-    button.go:disabled { background: #93b4f5; cursor: not-allowed; }
-    .hint { font-size: 12px; color: #888; font-weight: 400; margin-top: 4px; }
-    fieldset { margin-top: 18px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; }
-    legend { font-size: 13px; font-weight: 600; color: #555; padding: 0 6px; }
-    .opts { display: flex; gap: 18px 24px; flex-wrap: wrap; align-items: center; }
-    .opts label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0; font-weight: 400; }
-    .opts input[type=checkbox] { width: auto; }
-    .opts select { width: auto; }
-    #result { margin-top: 20px; padding: 16px; border-radius: 8px; display: none; }
-    #result.err { background: #fef2f2; border: 1px solid #fecaca; }
-    #result.ok { background: #fff; border: 1px solid #e5e7eb; }
-    .dlbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-    .dl { display: inline-block; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: 600; }
-    .dl.x { background: #16a34a; color: #fff; }
-    .dl.h { background: #2563eb; color: #fff; }
-    .section { margin-top: 18px; border-top: 1px solid #eee; padding-top: 12px; }
-    .section h3 { font-size: 15px; margin: 0 0 8px; }
-    .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 8px; }
-    .stat b { font-size: 18px; color: #2563eb; }
-    .legend { font-size: 12px; color: #666; margin-bottom: 8px; }
-    .legend .d { color: #d11; font-weight: 600; }
-    .legend .i { color: #080; font-weight: 600; }
+    .pair .rm { flex: 0 0 auto; width: 36px; height: 38px; background: #fff; color: #b91c1c;
+      border: 1px solid var(--line); border-radius: 9px; cursor: pointer; font-size: 16px;
+      line-height: 1; transition: all .15s; }
+    .pair .rm:hover { background: #fdecec; border-color: #f6caca; }
+    .addpair { margin-top: 4px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+      background: var(--primary-soft); color: var(--primary-d); border: 1px dashed #b9bbf3;
+      border-radius: 9px; cursor: pointer; transition: all .15s; }
+    .addpair:hover { background: #e3e5fd; }
+
+    /* options */
+    fieldset { margin: 20px 0 0; border: 1px solid var(--line); border-radius: 12px; padding: 6px 16px 14px; }
+    legend { font-size: 12px; font-weight: 700; color: var(--muted); padding: 0 8px; text-transform: uppercase; letter-spacing: .5px; }
+    .opts { display: flex; gap: 10px 12px; flex-wrap: wrap; align-items: center; }
+    .seg { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; }
+    .seg select { width: auto; padding: 7px 10px; }
+    .toggle { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px;
+      border: 1px solid var(--line); background: #fbfbfe; font-size: 13px; cursor: pointer;
+      color: #4b5563; transition: all .15s; user-select: none; }
+    .toggle:hover { border-color: #c8cce0; }
+    .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .toggle .dot { width: 15px; height: 15px; border-radius: 5px; border: 1.5px solid #c2c6d8;
+      display: grid; place-items: center; color: #fff; font-size: 10px; transition: all .15s; }
+    .toggle.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-d); font-weight: 600; }
+    .toggle.on .dot { background: var(--primary); border-color: var(--primary); }
+
+    .go { margin-top: 22px; width: 100%; padding: 14px; font-size: 15.5px; font-weight: 700; color: #fff;
+      border: none; border-radius: 12px; cursor: pointer; letter-spacing: .3px;
+      background: linear-gradient(135deg, #5b5bf0, #7b6bf6);
+      box-shadow: 0 12px 22px -10px rgba(91,91,240,.75); transition: transform .12s, box-shadow .12s, opacity .15s; }
+    .go:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 16px 26px -10px rgba(91,91,240,.8); }
+    .go:active:not(:disabled) { transform: translateY(0); }
+    .go:disabled { opacity: .7; cursor: not-allowed; }
+    .spin { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.45);
+      border-top-color: #fff; border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    /* result */
+    #result { margin-top: 22px; display: none; animation: fade .3s ease; }
+    .alert { padding: 14px 16px; border-radius: 12px; font-size: 14px; font-weight: 500;
+      background: #fdecef; color: #b21f33; border: 1px solid #f6c9d1; }
+    .dlbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .dl { display: inline-flex; align-items: center; gap: 7px; padding: 11px 16px; border-radius: 11px;
+      text-decoration: none; font-weight: 600; font-size: 14px; transition: transform .12s, box-shadow .12s; }
+    .dl:hover { transform: translateY(-1px); }
+    .dl.x { background: linear-gradient(135deg,#10a05a,#13b765); color: #fff; box-shadow: 0 10px 18px -9px rgba(16,160,90,.8); }
+    .dl.h { background: #fff; color: var(--primary-d); border: 1px solid #cfd2f3; }
+    .legend { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+    .section { background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px; margin-top: 14px; }
+    .section h3 { font-size: 14px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+    .section h3 .badge { font-size: 11px; font-weight: 700; color: var(--primary-d);
+      background: var(--primary-soft); padding: 2px 8px; border-radius: 999px; }
+    .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .tile { border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; background: #fbfbfe; }
+    .tile span { font-size: 12px; color: var(--muted); }
+    .tile b { display: block; font-size: 22px; margin-top: 2px; letter-spacing: -.5px; }
+    .tile.a b { color: var(--ink); }
+    .tile.b b { color: var(--red); }
+    .tile.c b { color: var(--green); }
+    .bar { height: 5px; border-radius: 999px; background: #eceef6; margin-top: 9px; overflow: hidden; }
+    .bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg,#10a05a,#7bd6a6); }
+
+    .wrap { max-height: 440px; overflow: auto; border: 1px solid var(--line); border-radius: 11px; }
     table.preview { width: 100%; border-collapse: collapse; font-size: 13px; }
-    table.preview th, table.preview td { border: 1px solid #e5e7eb; padding: 6px 8px;
+    table.preview th, table.preview td { border-bottom: 1px solid var(--line); padding: 9px 11px;
       vertical-align: top; text-align: left; word-break: break-word; }
-    table.preview th { background: #f3f4f6; position: sticky; top: 0; }
-    .wrap { max-height: 420px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
-    td.num { text-align: center; color: #999; width: 44px; }
-    td.sim { text-align: center; width: 60px; }
+    table.preview thead th { background: #f7f8fc; position: sticky; top: 0; font-weight: 600;
+      color: #4b5563; font-size: 12px; z-index: 1; }
+    table.preview tbody tr:nth-child(even) { background: #fcfcfe; }
+    table.preview tbody tr:hover { background: var(--primary-soft); }
+    td.num { text-align: center; color: #9aa0ad; width: 46px; font-variant-numeric: tabular-nums; }
+    td.sim { text-align: center; width: 64px; font-variant-numeric: tabular-nums; color: #4b5563; }
+    .more { font-size: 12px; color: var(--muted); margin: 10px 2px 0; }
+    .foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 26px; }
+
+    @media (max-width: 560px) {
+      .tabs { grid-template-columns: repeat(2, 1fr); }
+      .tiles { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 22px; }
+    }
   </style>
 </head>
 <body>
-  <h1>📝 文本对比工具</h1>
-  <p class="hint">逐行对比文本，不同字符高亮（<span style="color:#d11">红=删除/缺失</span>，<span style="color:#080">绿=新增</span>），在线预览并导出 Excel / HTML·PDF 报告。</p>
-  <div class="card">
-    <div class="tabs">
-      <div class="tab active" data-mode="txt">两个 txt</div>
-      <div class="tab" data-mode="excel">单个 Excel/CSV（可多列）</div>
-      <div class="tab" data-mode="two_excel">两个 Excel/CSV</div>
-      <div class="tab" data-mode="jsonl">jsonl</div>
+  <div class="shell">
+    <div class="hero">
+      <div class="logo">⇄</div>
+      <h1>文本对比工具</h1>
+      <p>逐行对比文本，差异字符高亮（<span class="chip r">红 删除/缺失</span> <span class="chip g">绿 新增</span>），在线预览并导出 Excel / PDF 报告</p>
     </div>
 
-    <form id="form">
-      <input type="hidden" name="mode" id="mode" value="txt">
-
-      <div class="pane active" data-pane="txt">
-        <label>文本文件 1</label><input type="file" name="txt1" accept=".txt">
-        <label>文本文件 2</label><input type="file" name="txt2" accept=".txt">
-        <p class="hint">两个文件行数一一对应，逐行对比。</p>
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" data-mode="txt"><span class="ic">📄</span>两个 txt</div>
+        <div class="tab" data-mode="excel"><span class="ic">📊</span>单个 Excel/CSV<br>（可多列）</div>
+        <div class="tab" data-mode="two_excel"><span class="ic">🗂️</span>两个 Excel/CSV</div>
+        <div class="tab" data-mode="jsonl"><span class="ic">🧩</span>jsonl</div>
       </div>
 
-      <div class="pane" data-pane="excel">
-        <label>Excel / CSV 文件</label>
-        <input type="file" name="excel" accept=".xlsx,.xlsm,.csv">
-        <p class="hint">第一行为表头。可添加多对列名，一次对比多列（每对输出一个 sheet）。</p>
-        <label>要对比的列对</label>
-        <div id="excel-pairs">
-          <div class="pair">
-            <input type="text" name="excel_col_a" placeholder="列名 A，如 src">
-            <input type="text" name="excel_col_b" placeholder="列名 B，如 mt">
-            <button type="button" class="rm" title="删除">×</button>
+      <form id="form">
+        <input type="hidden" name="mode" id="mode" value="txt">
+
+        <!-- txt -->
+        <div class="pane active" data-pane="txt">
+          <label class="fld">文本文件 1</label>
+          <div class="drop" data-drop>
+            <div class="dic">📄</div>
+            <div class="dtxt"><b data-name>点击或拖拽上传</b><span>支持 .txt</span></div>
+            <input type="file" name="txt1" accept=".txt">
           </div>
-        </div>
-        <button type="button" class="addpair" data-target="excel-pairs"
-          data-a="excel_col_a" data-b="excel_col_b">＋ 添加列对</button>
-      </div>
-
-      <div class="pane" data-pane="two_excel">
-        <div class="row">
-          <div><label>文件 1（Excel/CSV）</label><input type="file" name="excel1" accept=".xlsx,.xlsm,.csv"></div>
-          <div><label>文件 2（Excel/CSV）</label><input type="file" name="excel2" accept=".xlsx,.xlsm,.csv"></div>
-        </div>
-        <div class="row">
-          <div><label>文件 1 的列名</label><input type="text" name="col1" placeholder="如 译文"></div>
-          <div><label>文件 2 的列名</label><input type="text" name="col2" placeholder="如 译文"></div>
-        </div>
-        <p class="hint">两个文件按行号对应，分别取各自的一列对比。</p>
-      </div>
-
-      <div class="pane" data-pane="jsonl">
-        <label>jsonl 文件</label>
-        <input type="file" name="jsonl" accept=".json,.jsonl,.txt">
-        <p class="hint">每行一个 json，如 {"src":"...","mt":"..."}。可添加多对字段名。</p>
-        <label>要对比的字段对</label>
-        <div id="json-pairs">
-          <div class="pair">
-            <input type="text" name="json_key_a" value="src">
-            <input type="text" name="json_key_b" value="mt">
-            <button type="button" class="rm" title="删除">×</button>
+          <label class="fld">文本文件 2</label>
+          <div class="drop" data-drop>
+            <div class="dic">📄</div>
+            <div class="dtxt"><b data-name>点击或拖拽上传</b><span>支持 .txt</span></div>
+            <input type="file" name="txt2" accept=".txt">
           </div>
+          <p class="hint">两个文件行数一一对应，逐行对比。</p>
         </div>
-        <button type="button" class="addpair" data-target="json-pairs"
-          data-a="json_key_a" data-b="json_key_b">＋ 添加字段对</button>
-      </div>
 
-      <fieldset>
-        <legend>对比选项</legend>
-        <div class="opts">
-          <label>粒度
-            <select name="granularity">
-              <option value="char">字符级（适合中文）</option>
-              <option value="word">词级（适合英文）</option>
-            </select>
-          </label>
-          <label><input type="checkbox" name="ignore_case" value="1"> 忽略大小写</label>
-          <label><input type="checkbox" name="ignore_ws" value="1"> 忽略空白</label>
-          <label><input type="checkbox" name="ignore_punct" value="1"> 忽略标点</label>
-          <label><input type="checkbox" name="only_diff" value="1"> 只导出有差异的行</label>
+        <!-- excel -->
+        <div class="pane" data-pane="excel">
+          <label class="fld">Excel / CSV 文件</label>
+          <div class="drop" data-drop>
+            <div class="dic">📊</div>
+            <div class="dtxt"><b data-name>点击或拖拽上传</b><span>支持 .xlsx / .xlsm / .csv，首行为表头</span></div>
+            <input type="file" name="excel" accept=".xlsx,.xlsm,.csv">
+          </div>
+          <label class="fld">要对比的列对（可添加多对，一对输出一个 sheet）</label>
+          <div id="excel-pairs">
+            <div class="pair">
+              <input type="text" name="excel_col_a" placeholder="列名 A，如 src">
+              <span class="arrow">⇄</span>
+              <input type="text" name="excel_col_b" placeholder="列名 B，如 mt">
+              <button type="button" class="rm" title="删除">×</button>
+            </div>
+          </div>
+          <button type="button" class="addpair" data-target="excel-pairs"
+            data-a="excel_col_a" data-b="excel_col_b">＋ 添加列对</button>
         </div>
-      </fieldset>
 
-      <button type="submit" class="go" id="submit">开始对比</button>
-    </form>
+        <!-- two excel -->
+        <div class="pane" data-pane="two_excel">
+          <div class="row">
+            <div>
+              <label class="fld">文件 1（Excel/CSV）</label>
+              <div class="drop" data-drop>
+                <div class="dic">🗂️</div>
+                <div class="dtxt"><b data-name>点击或拖拽</b><span>.xlsx / .csv</span></div>
+                <input type="file" name="excel1" accept=".xlsx,.xlsm,.csv">
+              </div>
+            </div>
+            <div>
+              <label class="fld">文件 2（Excel/CSV）</label>
+              <div class="drop" data-drop>
+                <div class="dic">🗂️</div>
+                <div class="dtxt"><b data-name>点击或拖拽</b><span>.xlsx / .csv</span></div>
+                <input type="file" name="excel2" accept=".xlsx,.xlsm,.csv">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div><label class="fld">文件 1 的列名</label><input type="text" name="col1" placeholder="如 译文"></div>
+            <div><label class="fld">文件 2 的列名</label><input type="text" name="col2" placeholder="如 译文"></div>
+          </div>
+          <p class="hint">两个文件按行号对应，分别取各自的一列对比。</p>
+        </div>
 
-    <div id="result"></div>
+        <!-- jsonl -->
+        <div class="pane" data-pane="jsonl">
+          <label class="fld">jsonl 文件</label>
+          <div class="drop" data-drop>
+            <div class="dic">🧩</div>
+            <div class="dtxt"><b data-name>点击或拖拽上传</b><span>每行一个 json，如 {"src":"...","mt":"..."}</span></div>
+            <input type="file" name="jsonl" accept=".json,.jsonl,.txt">
+          </div>
+          <label class="fld">要对比的字段对（可添加多对）</label>
+          <div id="json-pairs">
+            <div class="pair">
+              <input type="text" name="json_key_a" value="src">
+              <span class="arrow">⇄</span>
+              <input type="text" name="json_key_b" value="mt">
+              <button type="button" class="rm" title="删除">×</button>
+            </div>
+          </div>
+          <button type="button" class="addpair" data-target="json-pairs"
+            data-a="json_key_a" data-b="json_key_b">＋ 添加字段对</button>
+        </div>
+
+        <fieldset>
+          <legend>对比选项</legend>
+          <div class="opts">
+            <span class="seg">粒度
+              <select name="granularity">
+                <option value="char">字符级（适合中文）</option>
+                <option value="word">词级（适合英文）</option>
+              </select>
+            </span>
+            <label class="toggle"><input type="checkbox" name="ignore_case" value="1"><span class="dot">✓</span>忽略大小写</label>
+            <label class="toggle"><input type="checkbox" name="ignore_ws" value="1"><span class="dot">✓</span>忽略空白</label>
+            <label class="toggle"><input type="checkbox" name="ignore_punct" value="1"><span class="dot">✓</span>忽略标点</label>
+            <label class="toggle"><input type="checkbox" name="only_diff" value="1"><span class="dot">✓</span>只导出有差异的行</label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="go" id="submit">开始对比</button>
+      </form>
+
+      <div id="result"></div>
+    </div>
+
+    <p class="foot">文本对比工具 · 字符/词级高亮 · 支持 txt / Excel / CSV / jsonl</p>
   </div>
 
   <script>
+    // tabs
     const tabs = document.querySelectorAll('.tab');
     const panes = document.querySelectorAll('.pane');
     const modeInput = document.getElementById('mode');
@@ -157,12 +320,34 @@
       modeInput.value = mode;
     }));
 
-    // 动态增删列对/字段对
+    // file dropzones: show filename + drag/drop + click
+    document.querySelectorAll('[data-drop]').forEach(zone => {
+      const input = zone.querySelector('input[type=file]');
+      const nameEl = zone.querySelector('[data-name]');
+      const orig = nameEl.textContent;
+      const update = () => {
+        if (input.files && input.files.length) {
+          nameEl.textContent = input.files[0].name;
+          zone.classList.add('filled');
+          zone.querySelector('.dic').textContent = '✓';
+        } else { nameEl.textContent = orig; zone.classList.remove('filled'); }
+      };
+      input.addEventListener('change', update);
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault(); zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; update(); }
+      });
+    });
+
+    // dynamic pairs
     document.querySelectorAll('.addpair').forEach(btn => btn.addEventListener('click', () => {
       const box = document.getElementById(btn.dataset.target);
       const div = document.createElement('div');
       div.className = 'pair';
       div.innerHTML = `<input type="text" name="${btn.dataset.a}" placeholder="A">
+        <span class="arrow">⇄</span>
         <input type="text" name="${btn.dataset.b}" placeholder="B">
         <button type="button" class="rm" title="删除">×</button>`;
       box.appendChild(div);
@@ -174,12 +359,20 @@
       }
     });
 
+    // toggle chips visual state
+    document.querySelectorAll('.toggle input').forEach(cb => {
+      const sync = () => cb.closest('.toggle').classList.toggle('on', cb.checked);
+      cb.addEventListener('change', sync); sync();
+    });
+
     const form = document.getElementById('form');
     const result = document.getElementById('result');
     const submit = document.getElementById('submit');
+    const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-    function escapeHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-
+    function tile(cls, label, val) {
+      return `<div class="tile ${cls}"><span>${label}</span><b>${val}</b></div>`;
+    }
     function sectionHtml(s, showTitle) {
       const rows = s.preview.map(r => `
         <tr><td class="num">${r.idx}</td>
@@ -187,43 +380,48 @@
         <td>${r.b_html || '<span style="color:#bbb">（空）</span>'}</td>
         <td class="sim">${r.sim}%</td></tr>`).join('');
       const more = s.total > s.preview.length
-        ? `<p class="hint">仅预览前 ${s.preview.length} 行，完整结果请下载。</p>` : '';
-      const title = showTitle ? `<h3>${escapeHtml(s.title || '')}</h3>` : '';
+        ? `<p class="more">仅预览前 ${s.preview.length} 行，完整结果请下载。</p>` : '';
+      const title = showTitle
+        ? `<h3><span class="badge">分组</span>${esc(s.title || '')}</h3>` : '';
       return `<div class="section">${title}
-        <div class="stats">
-          <div class="stat">总行数<br><b>${s.total}</b></div>
-          <div class="stat">差异行<br><b>${s.diff_count}</b></div>
-          <div class="stat">平均相似度<br><b>${s.avg_similarity}%</b></div>
-        </div>${more}
-        <div class="wrap"><table class="preview">
-          <thead><tr><th>行</th><th>${escapeHtml(s.header_a)}</th><th>${escapeHtml(s.header_b)}</th><th>相似度</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="4">没有可显示的行。</td></tr>'}</tbody>
+        <div class="tiles">
+          ${tile('a','总行数', s.total)}
+          ${tile('b','差异行', s.diff_count)}
+          ${tile('c','平均相似度', s.avg_similarity + '%')}
+        </div>
+        <div class="bar"><i style="width:${s.avg_similarity}%"></i></div>
+        ${more}
+        <div class="wrap" style="margin-top:12px"><table class="preview">
+          <thead><tr><th>行</th><th>${esc(s.header_a)}</th><th>${esc(s.header_b)}</th><th>相似度</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:#9aa0ad;padding:18px">没有可显示的行</td></tr>'}</tbody>
         </table></div></div>`;
     }
-
     function render(d) {
       const multi = d.sections.length > 1;
       const dl = `<div class="dlbar">
         <a class="dl x" href="${d.download_url}">⬇️ 下载高亮 Excel</a>
-        <a class="dl h" href="${d.report_url}" target="_blank">📄 打开报告（HTML / 存为 PDF）</a></div>`;
-      const legend = `<div class="legend"><span class="d">红 = 删除/缺失</span> ＆ <span class="i">绿 = 新增</span></div>`;
+        <a class="dl h" href="${d.report_url}" target="_blank">📄 报告（HTML / 存为 PDF）</a></div>`;
+      const legend = `<div class="legend">
+        <span><span class="chip r">红</span> 删除 / 缺失</span>
+        <span><span class="chip g">绿</span> 新增</span></div>`;
       return dl + legend + d.sections.map(s => sectionHtml(s, multi)).join('');
     }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      submit.disabled = true; submit.textContent = '处理中…';
+      submit.disabled = true; submit.innerHTML = '<span class="spin"></span>处理中…';
       result.style.display = 'none';
       try {
         const resp = await fetch('/diff', { method: 'POST', body: new FormData(form) });
         const data = await resp.json();
-        if (data.ok) { result.className = 'ok'; result.innerHTML = render(data); }
-        else { result.className = 'err'; result.innerHTML = '❌ ' + escapeHtml(data.error); }
+        if (data.ok) { result.innerHTML = render(data); }
+        else { result.innerHTML = `<div class="alert">⚠️ ${esc(data.error)}</div>`; }
       } catch (err) {
-        result.className = 'err'; result.textContent = '❌ 请求失败：' + err;
+        result.innerHTML = `<div class="alert">⚠️ 请求失败：${esc(String(err))}</div>`;
       } finally {
         result.style.display = 'block';
         submit.disabled = false; submit.textContent = '开始对比';
+        result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     });
   </script>
