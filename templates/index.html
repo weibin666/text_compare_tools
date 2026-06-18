@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文本对比工具</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222;
+      background: #f7f8fa;
+    }
+    h1 { font-size: 22px; }
+    .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab {
+      flex: 1; padding: 10px; text-align: center; cursor: pointer;
+      border: 1px solid #d0d4da; border-radius: 8px; background: #fafbfc; font-size: 14px;
+    }
+    .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .pane { display: none; }
+    .pane.active { display: block; }
+    label { display: block; margin: 14px 0 6px; font-size: 14px; font-weight: 600; }
+    input[type=file], input[type=text] {
+      width: 100%; padding: 9px; border: 1px solid #d0d4da; border-radius: 6px; font-size: 14px;
+    }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    button {
+      margin-top: 20px; width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
+      color: #fff; background: #2563eb; border: none; border-radius: 8px; cursor: pointer;
+    }
+    button:disabled { background: #93b4f5; cursor: not-allowed; }
+    .hint { font-size: 12px; color: #888; font-weight: 400; margin-top: 4px; }
+    #result { margin-top: 20px; padding: 16px; border-radius: 8px; display: none; }
+    #result.ok { background: #ecfdf5; border: 1px solid #a7f3d0; }
+    #result.err { background: #fef2f2; border: 1px solid #fecaca; }
+    #result a { display: inline-block; margin-top: 8px; color: #2563eb; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>📝 文本对比工具</h1>
+  <p class="hint">对比两段文本，把不同的字符在 Excel 中用红色高亮标出。</p>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-mode="txt">两个 txt 文件</div>
+      <div class="tab" data-mode="excel">Excel 文件</div>
+      <div class="tab" data-mode="jsonl">jsonl 文件</div>
+    </div>
+
+    <form id="form">
+      <input type="hidden" name="mode" id="mode" value="txt">
+
+      <!-- txt -->
+      <div class="pane active" data-pane="txt">
+        <label>文本文件 1</label>
+        <input type="file" name="txt1" accept=".txt">
+        <label>文本文件 2</label>
+        <input type="file" name="txt2" accept=".txt">
+        <p class="hint">两个文件行数一一对应，逐行对比。</p>
+      </div>
+
+      <!-- excel -->
+      <div class="pane" data-pane="excel">
+        <label>Excel 文件</label>
+        <input type="file" name="excel" accept=".xlsx,.xlsm">
+        <p class="hint">第一行为表头，下面填要对比的两个列名。</p>
+        <div class="row">
+          <div><label>列名 A</label><input type="text" name="excel_col_a" placeholder="如 src"></div>
+          <div><label>列名 B</label><input type="text" name="excel_col_b" placeholder="如 mt"></div>
+        </div>
+      </div>
+
+      <!-- jsonl -->
+      <div class="pane" data-pane="jsonl">
+        <label>jsonl 文件</label>
+        <input type="file" name="jsonl" accept=".json,.jsonl,.txt">
+        <p class="hint">每行一个 json，如 {"src":"...","mt":"..."}。下面填要对比的两个字段名。</p>
+        <div class="row">
+          <div><label>字段 A</label><input type="text" name="json_key_a" value="src"></div>
+          <div><label>字段 B</label><input type="text" name="json_key_b" value="mt"></div>
+        </div>
+      </div>
+
+      <button type="submit" id="submit">开始对比</button>
+    </form>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('.pane');
+    const modeInput = document.getElementById('mode');
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panes.forEach(p => p.classList.toggle('active', p.dataset.pane === mode));
+      modeInput.value = mode;
+    }));
+
+    const form = document.getElementById('form');
+    const result = document.getElementById('result');
+    const submit = document.getElementById('submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submit.disabled = true; submit.textContent = '处理中…';
+      result.style.display = 'none';
+      try {
+        const resp = await fetch('/diff', { method: 'POST', body: new FormData(form) });
+        const data = await resp.json();
+        if (data.ok) {
+          result.className = 'ok';
+          result.innerHTML = `✅ 对比完成：共 <b>${data.total}</b> 行，其中 <b>${data.diff_count}</b> 行有差异。<br>
+            <a href="${data.download_url}">⬇️ 下载高亮 Excel 结果</a>`;
+        } else {
+          result.className = 'err';
+          result.innerHTML = '❌ ' + data.error;
+        }
+      } catch (err) {
+        result.className = 'err';
+        result.textContent = '❌ 请求失败：' + err;
+      } finally {
+        result.style.display = 'block';
+        submit.disabled = false; submit.textContent = '开始对比';
+      }
+    });
+  </script>
+</body>
+</html>

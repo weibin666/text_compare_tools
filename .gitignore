@@ -1,0 +1,14 @@
+# 生成的对比结果（运行时临时文件）
+results/
+diff_result.xlsx
+downloaded.xlsx
+
+# 本地配置
+.claude/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
